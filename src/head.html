@@ -190,7 +190,7 @@ input[type=range]{accent-color:#A31C1B}
 /* Framed game menu inspired by the reference settings screen */
 #app{height:100%;display:block;position:relative}
 #stage{position:fixed;inset:0;height:100vh;z-index:0;grid-area:auto}
-#bay{position:relative;z-index:6;margin:3vh auto;height:94vh;width:min(94vw,1380px);padding:0 clamp(18px,6vw,88px) 26px;border:1px solid rgba(237,241,238,.62);background:rgba(6,17,12,.68);backdrop-filter:blur(2px);border-radius:0;box-shadow:none;gap:16px}
+#bay{position:relative;z-index:6;margin:3vh auto;height:94vh;width:min(94vw,1380px);overflow-y:auto;overflow-x:hidden;padding:0 clamp(18px,6vw,88px) 26px;border:1px solid rgba(237,241,238,.62);background:rgba(6,17,12,.68);backdrop-filter:blur(2px);border-radius:0;box-shadow:none;gap:16px}
 #settingsHeader{position:sticky;top:0;z-index:8;height:72px;min-height:72px;margin:0 calc(clamp(18px,6vw,88px)*-1);padding:12px clamp(18px,6vw,88px);display:flex;align-items:center;gap:clamp(18px,4vw,52px);background:linear-gradient(180deg,rgba(6,17,12,.96),rgba(6,17,12,.78));border-bottom:1px solid rgba(237,241,238,.62)}
 .backButton{width:48px;height:48px;flex:0 0 48px;border:1px solid rgba(237,241,238,.8);border-radius:50%;background:#171717;color:#fff;font:400 38px/1 var(--display);display:grid;place-items:center;padding:0}
 .backButton:hover{background:#A31C1B;border-color:#A31C1B}
