@@ -225,21 +225,41 @@ input[type=range]{accent-color:#A31C1B}
 #bay[data-settings-tab="game"] .card{background:rgba(23,23,23,.48);border:0;border-top:1px solid rgba(237,241,238,.42);border-radius:0;padding:14px 2px}
 #bay[data-settings-tab="game"] .card.sel{border-top-color:#A31C1B}
 #bay[data-settings-tab="game"] .g{background:rgba(23,23,23,.6)}
-@media(max-width:900px){
- #app{height:100dvh;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(250px,40dvh) minmax(0,60dvh);grid-template-areas:"stage" "bay";overflow:hidden}
- #stage{grid-area:stage;position:relative;inset:auto;height:40dvh;min-height:250px;z-index:0}
- #bay{grid-area:bay;margin:0;width:100%;height:60dvh;max-height:60dvh;padding:0 14px 18px;overflow-y:auto;overflow-x:hidden;border:0;border-top:1px solid rgba(237,241,238,.55);background:#06110C;gap:12px}
- #settingsHeader{height:56px;min-height:56px;margin:0 -14px;padding:7px 10px;gap:8px}
- .backButton{width:38px;height:38px;flex-basis:38px;font-size:30px}
- .menuTabs{gap:2px}
- .menuTab{height:38px;padding:0 5px;font-size:9px;letter-spacing:.045em}
- .settingRow{grid-template-columns:minmax(0,1fr) minmax(100px,35%);gap:8px;min-height:66px}
- .settingRow b{font-size:13px}
+@media (min-width:601px) and (max-width:900px){
+ #app{height:100dvh;display:grid;grid-template-columns:minmax(200px,38%) minmax(0,62%);grid-template-rows:1fr;grid-template-areas:"stage bay";overflow:hidden}
+ #stage{grid-area:stage;position:relative;inset:auto;height:100dvh;min-width:0;z-index:0}
+ #bay{grid-area:bay;margin:0;width:auto;height:100dvh;max-height:100dvh;padding:0 12px 16px;overflow-y:auto;overflow-x:hidden;border:0;border-left:1px solid rgba(237,241,238,.55);background:rgba(6,17,12,.72);gap:10px}
+ #settingsHeader{height:54px;min-height:54px;margin:0 -12px;padding:6px 8px;gap:6px}
+ .backButton{width:36px;height:36px;flex-basis:36px;font-size:28px}
+ .menuTabs{grid-template-columns:repeat(3,minmax(0,1fr));gap:1px}
+ .menuTab{height:36px;padding:0 4px;font-size:9px;letter-spacing:.035em}
+ .gauges{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+ .g{padding:7px}
+ .g .gv{font-size:16px}
+ .settingRow{grid-template-columns:minmax(0,1fr) minmax(92px,36%);gap:6px;min-height:64px}
+ .settingRow b{font-size:12px}
  .settingRow small{font-size:10px}
- .settingControl{min-width:0;padding:7px 8px}
- .stepControl{grid-template-columns:28px 1fr 28px}
- .hexToggle{width:62px;height:36px}
- .settingsPage{margin-top:16px}
+ .settingControl{min-width:0;padding:6px}
+ .stepControl{grid-template-columns:26px 1fr 26px}
+ .hexToggle{width:58px;height:34px}
+ .settingsPage{margin-top:14px}
+ #bay[data-settings-tab="game"] #bar{position:sticky;bottom:0}
+}
+@media(max-width:600px){
+ #app{height:100dvh;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(220px,38dvh) minmax(0,62dvh);grid-template-areas:"stage" "bay";overflow:hidden}
+ #stage{grid-area:stage;position:relative;inset:auto;height:38dvh;min-height:220px;z-index:0}
+ #bay{grid-area:bay;margin:0;width:100%;height:62dvh;max-height:62dvh;padding:0 14px 16px;overflow-y:auto;overflow-x:hidden;border:0;border-top:1px solid rgba(237,241,238,.55);background:#06110C;gap:10px}
+ #settingsHeader{height:52px;min-height:52px;margin:0 -14px;padding:6px 8px;gap:6px}
+ .backButton{width:36px;height:36px;flex-basis:36px;font-size:28px}
+ .menuTabs{grid-template-columns:repeat(3,minmax(0,1fr));gap:1px}
+ .menuTab{height:36px;padding:0 4px;font-size:9px;letter-spacing:.035em}
+ .settingRow{grid-template-columns:minmax(0,1fr) minmax(100px,35%);gap:8px;min-height:64px}
+ .settingRow b{font-size:12px}
+ .settingRow small{font-size:10px}
+ .settingControl{min-width:0;padding:6px}
+ .stepControl{grid-template-columns:26px 1fr 26px}
+ .hexToggle{width:58px;height:34px}
+ .settingsPage{margin-top:14px}
  #bay[data-settings-tab="game"] #bar{position:sticky;bottom:0}
 }
 
@@ -736,7 +756,7 @@ function renderGauges(){
  const fails=Object.values(G).filter(g=>!g.pass).length+(G.twr.pass&&ap<100?1:0);
  const lb=$('#launch');lb.textContent=fails?'Launch anyway ('+fails+' failing)':'Launch';
 }
-const TABS=[['propulsion','Propulsion'],['power','Power'],['payload','Payload'],['structure','Structure'],['crew','Crew'],['agency','Agency'],['codex','Codex']];
+const TABS=[['propulsion','Propulsion'],['power','Power'],['payload','Payload'],['structure','Structure'],['crew','Crew'],['agency','Agency']];
 function renderTabs(){$('#tabs').innerHTML=TABS.map(t=>'<button role="tab" id="tab-'+t[0]+'" aria-selected="'+(tab===t[0])+'" data-tab="'+t[0]+'">'+t[1]+'</button>').join('');}
 function chips(p){const mm=matFor(build,p);const m=p.dry*mm.m+p.prop;let h='<span>'+Math.round(m)+' kg</span><span>'+money(p.cost*mm.c)+'</span>';if(p.thrust)h+='<span class="pos">'+(p.thrust/1000)+' kN</span>';if(p.power)h+='<span class="'+(p.power>0?'pos':'neg')+'">'+(p.power>0?'+':'')+p.power+' kW</span>';h+='<span>'+p.hours+' h</span>';return h;}
 function renderCatalog(){
