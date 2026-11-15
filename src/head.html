@@ -188,14 +188,14 @@ input[type=range]{accent-color:#A31C1B}
  #stage{box-shadow:0 1px 0 #354039}
 }
 /* Framed game menu inspired by the reference settings screen */
-#app{height:100%;display:block;position:relative}
-#stage{position:fixed;inset:0;height:100vh;z-index:0;grid-area:auto}
-#bay{position:relative;z-index:6;margin:3vh auto;height:94vh;width:min(94vw,1380px);overflow-y:auto;overflow-x:hidden;padding:0 clamp(18px,6vw,88px) 26px;border:1px solid rgba(237,241,238,.62);background:rgba(6,17,12,.68);backdrop-filter:blur(2px);border-radius:0;box-shadow:none;gap:16px}
-#settingsHeader{position:sticky;top:0;z-index:8;height:72px;min-height:72px;margin:0 calc(clamp(18px,6vw,88px)*-1);padding:12px clamp(18px,6vw,88px);display:flex;align-items:center;gap:clamp(18px,4vw,52px);background:linear-gradient(180deg,rgba(6,17,12,.96),rgba(6,17,12,.78));border-bottom:1px solid rgba(237,241,238,.62)}
+#app{height:100%;display:grid;grid-template-columns:minmax(0,1fr) minmax(390px,36vw);grid-template-areas:"stage bay";position:relative;overflow:hidden}
+#stage{grid-area:stage;position:relative;inset:auto;z-index:0;height:100vh;min-width:0;background:#06110C}
+#bay{grid-area:bay;position:relative;z-index:6;margin:0;height:100vh;width:auto;max-width:none;overflow-y:auto;overflow-x:hidden;padding:0 clamp(16px,2vw,30px) 22px;border:0;border-left:1px solid rgba(237,241,238,.55);background:rgba(6,17,12,.82);backdrop-filter:none;border-radius:0;box-shadow:none;gap:14px}
+#settingsHeader{position:sticky;top:0;z-index:8;height:62px;min-height:62px;margin:0 calc(clamp(16px,2vw,30px)*-1);padding:8px clamp(16px,2vw,30px);display:flex;align-items:center;gap:12px;background:rgba(6,17,12,.98);border-bottom:1px solid rgba(237,241,238,.55)}
 .backButton{width:48px;height:48px;flex:0 0 48px;border:1px solid rgba(237,241,238,.8);border-radius:50%;background:#171717;color:#fff;font:400 38px/1 var(--display);display:grid;place-items:center;padding:0}
 .backButton:hover{background:#A31C1B;border-color:#A31C1B}
-.menuTabs{display:grid;grid-template-columns:repeat(3,minmax(140px,1fr));gap:clamp(8px,2.5vw,34px);width:min(760px,100%);margin:auto}
-.menuTab{height:48px;border:1px solid rgba(237,241,238,.78);clip-path:polygon(9% 0,91% 0,100% 50%,91% 100%,9% 100%,0 50%);background:#171717;color:#f3f5f3;padding:0 22px;font:600 14px var(--display);letter-spacing:.14em;text-transform:uppercase}
+.menuTabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px;width:100%;margin:auto}
+.menuTab{height:42px;border:1px solid rgba(237,241,238,.7);clip-path:polygon(9% 0,91% 0,100% 50%,91% 100%,9% 100%,0 50%);background:#171717;color:#f3f5f3;padding:0 8px;font:600 11px var(--display);letter-spacing:.07em;text-transform:uppercase}
 .menuTab[aria-selected=true]{background:#A31C1B;border-color:#A31C1B}
 .menuTab:hover{background:#292929}
 .menuTab[aria-selected=true]:hover{background:#bd3a36}
@@ -226,7 +226,22 @@ input[type=range]{accent-color:#A31C1B}
 #bay[data-settings-tab="game"] .card.sel{border-top-color:#A31C1B}
 #bay[data-settings-tab="game"] .g{background:rgba(23,23,23,.6)}
 @media(max-width:900px){
- #app{height:100dvh;overflow:hidden}
+ #app{height:100dvh;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(250px,40dvh) minmax(0,60dvh);grid-template-areas:"stage" "bay";overflow:hidden}
+ #stage{grid-area:stage;position:relative;inset:auto;height:40dvh;min-height:250px;z-index:0}
+ #bay{grid-area:bay;margin:0;width:100%;height:60dvh;max-height:60dvh;padding:0 14px 18px;overflow-y:auto;overflow-x:hidden;border:0;border-top:1px solid rgba(237,241,238,.55);background:#06110C;gap:12px}
+ #settingsHeader{height:56px;min-height:56px;margin:0 -14px;padding:7px 10px;gap:8px}
+ .backButton{width:38px;height:38px;flex-basis:38px;font-size:30px}
+ .menuTabs{gap:2px}
+ .menuTab{height:38px;padding:0 5px;font-size:9px;letter-spacing:.045em}
+ .settingRow{grid-template-columns:minmax(0,1fr) minmax(100px,35%);gap:8px;min-height:66px}
+ .settingRow b{font-size:13px}
+ .settingRow small{font-size:10px}
+ .settingControl{min-width:0;padding:7px 8px}
+ .stepControl{grid-template-columns:28px 1fr 28px}
+ .hexToggle{width:62px;height:36px}
+ .settingsPage{margin-top:16px}
+ #bay[data-settings-tab="game"] #bar{position:sticky;bottom:0}
+}
  #stage{height:100dvh}
  #bay{margin:12px auto;height:calc(100dvh - 24px);width:calc(100vw - 24px);padding:0 16px 22px;gap:14px}
  #settingsHeader{height:64px;min-height:64px;margin:0 -16px;padding:8px 12px;gap:10px}
