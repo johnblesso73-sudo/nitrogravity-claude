@@ -113,6 +113,10 @@ input[type=range]{width:100%;accent-color:var(--thrust)}
  #launch{min-width:0;flex:1}
 }
 @media (prefers-reduced-motion:reduce){.g .bar i{transition:none}}
+.ag{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.agl{display:flex;flex-direction:column;gap:4px;font:600 10px/1 var(--display);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.agl input[type=text],.agl select{background:#0d1522;border:1px solid var(--line);border-radius:3px;color:var(--text);padding:8px;font:500 13px var(--body);min-height:40px;text-transform:none;letter-spacing:0}
+.agl input[type=color]{width:100%;height:40px;padding:2px;background:#0d1522;border:1px solid var(--line);border-radius:3px}
 </style>
 <div id="app">
  <section id="stage" aria-label="3D launchpad viewport">
@@ -285,6 +289,55 @@ if(typeof module!=='undefined') module.exports={improve,neighbors,evalBuild,runH
 
 </script>
 <script>
+'use strict';
+/* Agency creator and combination codex helpers. Pure logic except drawFlag, which draws onto a canvas you pass in. */
+const AGENCY_DEFAULT={name:'Nitro Gravity',field:'#0f2a5c',pattern:'stripe',stripe:'#ff8a3d',emblem:'rocket',emblemColor:'#ffffff',pos:'center',size:'M'};
+const AG_ENUM={pattern:['stripe','chevron','split','none'],emblem:['none','rocket','star','planet','moon'],pos:['left','center','right'],size:['S','M','L']};
+function escHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function cleanAgency(a){
+ const o=Object.assign({},AGENCY_DEFAULT);
+ if(!a||typeof a!=='object')return o;
+ ['field','stripe','emblemColor'].forEach(k=>{if(typeof a[k]==='string'&&/^#[0-9a-f]{6}$/i.test(a[k]))o[k]=a[k].toLowerCase();});
+ for(const k in AG_ENUM)if(AG_ENUM[k].includes(a[k]))o[k]=a[k];
+ if(typeof a.name==='string'){const n=a.name.replace(/[\u0000-\u001f<>]/g,'').trim().slice(0,24);if(n)o.name=n;}
+ return o;
+}
+function loadAgency(){let raw=null;try{raw=JSON.parse(localStorage.getItem('ng-agency')||'null');}catch(e){}return cleanAgency(raw);}
+function saveAgency(a){try{localStorage.setItem('ng-agency',JSON.stringify(a));}catch(e){}}
+function lum(hex){const c=[1,3,5].map(i=>{const v=parseInt(hex.slice(i,i+2),16)/255;return v<=.03928?v/12.92:Math.pow((v+.055)/1.055,2.4);});return .2126*c[0]+.7152*c[1]+.0722*c[2];}
+function contrastRatio(a,b){const x=lum(a),y=lum(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05);}
+function drawFlag(a,cv){
+ const w=cv.width,h=cv.height,x=cv.getContext('2d');
+ x.fillStyle=a.field;x.fillRect(0,0,w,h);
+ x.fillStyle=a.stripe;
+ if(a.pattern==='stripe')x.fillRect(0,h*.4,w,h*.2);
+ else if(a.pattern==='chevron'){x.beginPath();x.moveTo(0,0);x.lineTo(w*.45,h/2);x.lineTo(0,h);x.closePath();x.fill();}
+ else if(a.pattern==='split')x.fillRect(w/2,0,w/2,h);
+ if(a.emblem==='none')return;
+ const r=h*({S:.2,M:.3,L:.42}[a.size]||.3),cx=w*({left:.25,center:.5,right:.75}[a.pos]||.5),cy=h/2;
+ x.fillStyle=a.emblemColor;x.strokeStyle=a.emblemColor;
+ if(a.emblem==='star'){x.beginPath();for(let i=0;i<10;i++){const g=-Math.PI/2+i*Math.PI/5,q=i%2?r*.45:r;x.lineTo(cx+Math.cos(g)*q,cy+Math.sin(g)*q);}x.closePath();x.fill();}
+ else if(a.emblem==='planet'){x.beginPath();x.arc(cx,cy,r*.7,0,Math.PI*2);x.fill();x.strokeStyle=a.field;x.lineWidth=r*.32;x.beginPath();x.ellipse(cx,cy,r*1.05,r*.35,-.4,0,Math.PI*2);x.stroke();x.strokeStyle=a.emblemColor;x.lineWidth=r*.12;x.beginPath();x.ellipse(cx,cy,r*1.05,r*.35,-.4,0,Math.PI*2);x.stroke();}
+ else if(a.emblem==='moon'){x.beginPath();x.arc(cx,cy,r*.85,Math.PI*.35,Math.PI*1.65,false);x.arc(cx+r*.4,cy,r*.7,Math.PI*1.55,Math.PI*.45,true);x.closePath();x.fill();}
+ else if(a.emblem==='rocket'){
+  x.beginPath();x.moveTo(cx,cy-r);x.quadraticCurveTo(cx+r*.45,cy-r*.3,cx+r*.3,cy+r*.55);x.lineTo(cx-r*.3,cy+r*.55);x.quadraticCurveTo(cx-r*.45,cy-r*.3,cx,cy-r);x.fill();
+  x.beginPath();x.moveTo(cx+r*.3,cy+r*.1);x.lineTo(cx+r*.65,cy+r*.7);x.lineTo(cx+r*.3,cy+r*.55);x.closePath();x.fill();
+  x.beginPath();x.moveTo(cx-r*.3,cy+r*.1);x.lineTo(cx-r*.65,cy+r*.7);x.lineTo(cx-r*.3,cy+r*.55);x.closePath();x.fill();
+  x.fillStyle=a.field;x.beginPath();x.arc(cx,cy-r*.15,r*.13,0,Math.PI*2);x.fill();
+ }
+}
+/* Number of distinct designs the builder allows: part counts x structure materials x crew sizes. Boosters share a limit of 2 slots. */
+function designSpace(parts,mats,crewLevels){
+ let n=1;const bs=[];
+ for(const p of parts){if(p.fixed)continue;if(p.booster){bs.push(p);continue;}n*=p.max+1;}
+ let pairs=1;
+ if(bs.length){pairs=0;const a=bs[0].max,b=bs[1]?bs[1].max:0;for(let i=0;i<=a;i++)for(let j=0;j<=b;j++)if(i+j<=2)pairs++;}
+ return n*pairs*Object.keys(mats).length*(crewLevels||7);
+}
+if(typeof module!=='undefined')module.exports={AGENCY_DEFAULT,AG_ENUM,escHtml,cleanAgency,contrastRatio,designSpace,drawFlag};
+
+</script>
+<script>
 (function(){
 'use strict';
 const $=(s,r)=>(r||document).querySelector(s);
@@ -294,6 +347,9 @@ const money=v=>v>=1e6?'$'+(v/1e6).toFixed(2)+'M':'$'+Math.round(v/1e3)+'k';
 const tfmt=t=>{t=Math.max(0,t|0);return String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0');};
 const START={counts:{camera:1,'solar-wing':1},mat:'al-standard',crew:4};
 let build=clone(START), hist=[], redo=[], tab='propulsion', lastRun=null;
+let agency=loadAgency(),flagTex=null,codex=loadCodex();
+const flagCv=document.createElement('canvas');flagCv.width=256;flagCv.height=160;drawFlag(agency,flagCv);
+function flagPlane(w,h,x,y,z){if(!flagTex)flagTex=new THREE.CanvasTexture(flagCv);const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshBasicMaterial({map:flagTex,side:THREE.DoubleSide}));m.position.set(x,y,z);return m;}
 let mode='build', fl=null, simAcc=0, speed=6, paused=false, cdT=0, visAlt=0, samples=[], lastSample=0, debTimer=null, prop0=1;
 const cache=new Map();
 function key(b){return JSON.stringify([Object.keys(b.counts).sort().map(k=>[k,b.counts[k]]),b.mat,b.crew]);}
@@ -330,7 +386,7 @@ function buildRocket(b){
  const core=tag('core-stage',new THREE.Group());
  core.add(mesh(new THREE.CylinderGeometry(.28,.5,.7,24),dark,0,.35,0));
  core.add(mesh(new THREE.CylinderGeometry(.55,.55,4.4,32),sm,0,2.9,0));
- [1.5,4.6].forEach(y=>{const t=mesh(new THREE.TorusGeometry(.56,.03,8,32),accent,0,y,0);t.rotation.x=Math.PI/2;core.add(t);});
+ [1.5,4.6].forEach(y=>{const t=mesh(new THREE.TorusGeometry(.56,.03,8,32),accent,0,y,0);t.rotation.x=Math.PI/2;core.add(t);});core.add(flagPlane(.7,.45,0,3.25,.56));
  for(let k=0;k<3;k++){const a=k*Math.PI*2/3+Math.PI/6;const f=mesh(new THREE.BoxGeometry(.06,.9,.5),sm,Math.cos(a)*.72,1.1,Math.sin(a)*.72);f.rotation.y=-a;core.add(f);}
  const cap=tag('capsule',new THREE.Group());
  cap.add(mesh(new THREE.ConeGeometry(.55,1.3,32),M(0xf3f5f8,{metalness:.2}),0,5.75,0));
@@ -382,7 +438,7 @@ function init3D(){
  const grid=new THREE.GridHelper(140,70,0x2f5a93,0x172a45);grid.position.y=.05;scene.add(grid);
  const ring=new THREE.Mesh(new THREE.RingGeometry(3.4,3.8,64),new THREE.MeshBasicMaterial({color:0xff8a3d,side:THREE.DoubleSide}));ring.rotation.x=-Math.PI/2;ring.position.y=.07;scene.add(ring);
  const tm=new THREE.MeshStandardMaterial({color:0x4a5668,metalness:.6,roughness:.5});
- const tw=new THREE.Group();tw.add(mesh(new THREE.BoxGeometry(.7,13,.7),tm,0,6.5,0));[3,6,9,12].forEach(y=>tw.add(mesh(new THREE.BoxGeometry(2.6,.18,.18),tm,1.3,y,0)));tw.position.set(-4.6,0,0);scene.add(tw);
+ const tw=new THREE.Group();tw.add(mesh(new THREE.BoxGeometry(.7,13,.7),tm,0,6.5,0));[3,6,9,12].forEach(y=>tw.add(mesh(new THREE.BoxGeometry(2.6,.18,.18),tm,1.3,y,0)));tw.add(flagPlane(1.8,1.1,1.5,11.3,0));tw.position.set(-4.6,0,0);scene.add(tw);
  planet=new THREE.Mesh(new THREE.SphereGeometry(40000,96,64),new THREE.MeshStandardMaterial({color:0x0e1624,roughness:1}));planet.position.y=-40000;scene.add(planet);
  atmo=new THREE.Mesh(new THREE.SphereGeometry(40700,96,64),new THREE.MeshBasicMaterial({color:0x58d0f5,transparent:true,opacity:.14,side:THREE.BackSide,blending:THREE.AdditiveBlending,depthWrite:false}));atmo.position.y=-40000;atmo.visible=false;scene.add(atmo);
  const sp=new Float32Array(1800*3);for(let i=0;i<1800;i++){const u=Math.random()*2-1,a=Math.random()*6.283,s=Math.sqrt(1-u*u);sp[i*3]=Math.cos(a)*s*100000;sp[i*3+1]=Math.abs(u)*100000;sp[i*3+2]=Math.sin(a)*s*100000;}
@@ -476,11 +532,13 @@ function renderGauges(){
  const fails=Object.values(G).filter(g=>!g.pass).length+(G.twr.pass&&ap<100?1:0);
  const lb=$('#launch');lb.textContent=fails?'Launch anyway ('+fails+' failing)':'Launch';
 }
-const TABS=[['propulsion','Propulsion'],['power','Power'],['payload','Payload'],['structure','Structure'],['crew','Crew']];
+const TABS=[['propulsion','Propulsion'],['power','Power'],['payload','Payload'],['structure','Structure'],['crew','Crew'],['agency','Agency'],['codex','Codex']];
 function renderTabs(){$('#tabs').innerHTML=TABS.map(t=>'<button role="tab" id="tab-'+t[0]+'" aria-selected="'+(tab===t[0])+'" data-tab="'+t[0]+'">'+t[1]+'</button>').join('');}
 function chips(p){const mm=matFor(build,p);const m=p.dry*mm.m+p.prop;let h='<span>'+Math.round(m)+' kg</span><span>'+money(p.cost*mm.c)+'</span>';if(p.thrust)h+='<span class="pos">'+(p.thrust/1000)+' kN</span>';if(p.power)h+='<span class="'+(p.power>0?'pos':'neg')+'">'+(p.power>0?'+':'')+p.power+' kW</span>';h+='<span>'+p.hours+' h</span>';return h;}
 function renderCatalog(){
  const L=$('#catalog');L.setAttribute('aria-labelledby','tab-'+tab);
+ if(tab==='agency'){renderAgency(L);return;}
+ if(tab==='codex'){renderCodex(L);return;}
  if(tab==='structure'){L.innerHTML=Object.keys(MATS).map(k=>{const m=MATS[k];const sel=k===build.mat;return '<div class="card'+(sel?' sel':'')+'"><div class="ct"><b>'+m.n+'</b><span class="cnt">'+(sel?'✓ selected':'')+'</span></div><div class="chips"><span>mass ×'+m.m+'</span><span>cost ×'+m.c+'</span><span>time ×'+m.t+'</span><span>limit '+(3*m.s).toFixed(1)+' g</span><span>heat ×'+m.h+'</span></div><p class="note">'+m.note+'</p><div class="act"><button class="btn" data-mat="'+k+'" '+(sel?'disabled':'')+'>'+(sel?'In use':'Use this')+'</button></div></div>';}).join('')+'<p class="fine">Material changes the dry mass, cost and build time of the capsule, core stage and boosters. Strength sets how many g the structure survives at max-Q.</p>';return;}
  if(tab==='crew'){const d=evalBuild(build);L.innerHTML='<div class="card"><div class="ct"><b>Assembly crew</b><span class="cnt">'+build.crew+' people</span></div><label for="crew" class="note">More crew builds faster. Each person above 4 costs $30k.</label><input id="crew" type="range" min="4" max="10" step="1" value="'+build.crew+'"><div class="chips"><span>'+d.days.toFixed(1)+' days</span><span>'+money(Math.max(0,(build.crew-4)*30000))+' extra</span><span>'+Math.round(d.hours)+' work hours</span></div><p class="note">Repeating a part type gets 8% faster each time. Mixing many part types adds 4% integration time each.</p></div>';return;}
  const cats=tab==='propulsion'?['core','propulsion']:[tab];
@@ -490,6 +548,18 @@ function renderCatalog(){
 }
 function renderExamples(){$('#examples').innerHTML=Object.keys(EXAMPLES).map(k=>'<button class="btn" data-ex="'+k+'">'+EXAMPLES[k].name+'</button>').join('');$('#undo').disabled=!hist.length||mode!=='build';$('#redo').disabled=!redo.length||mode!=='build';}
 function renderAll(){renderGauges();renderTabs();renderCatalog();renderExamples();}
+
+/* ---------- agency flag & combination codex ---------- */
+function loadCodex(){try{const s=JSON.parse(localStorage.getItem('ng-codex')||'null');if(s&&Array.isArray(s.tried)&&Array.isArray(s.mats)&&Array.isArray(s.parts))return {tried:s.tried.slice(0,2000),mats:s.mats,parts:s.parts,best:+s.best||0};}catch(e){}return {tried:[],mats:[],parts:[],best:0};}
+function saveCodex(){try{localStorage.setItem('ng-codex',JSON.stringify(codex));}catch(e){}}
+function recordTry(b){const k=key(b);if(!codex.tried.includes(k)&&codex.tried.length<2000)codex.tried.push(k);if(!codex.mats.includes(b.mat))codex.mats.push(b.mat);for(const id in b.counts)if(b.counts[id]>0&&!codex.parts.includes(id))codex.parts.push(id);saveCodex();}
+function agencySelect(k,label,opts){return '<label class="agl">'+label+'<select data-ag="'+k+'">'+opts.map(o=>'<option value="'+o+'"'+(agency[k]===o?' selected':'')+'>'+o+'</option>').join('')+'</select></label>';}
+function agencyColor(k,label){return '<label class="agl">'+label+'<input type="color" data-ag="'+k+'" value="'+agency[k]+'"></label>';}
+function agencyPreview(){const i=$('#flagPrev');if(!i)return;try{i.src=flagCv.toDataURL();}catch(e){}const n=$('#agNote');if(n){const c=contrastRatio(agency.emblemColor,agency.field);n.textContent=agency.emblem==='none'?'':'Emblem contrast '+c.toFixed(1)+':1'+(c<3?'. Low: pick a lighter or darker emblem colour.':'. Readable.');}}
+function renderAgency(L){
+ L.innerHTML='<div class="card"><div class="ct"><b>Agency flag</b><span class="cnt">saved on this device</span></div><img id="flagPrev" alt="Preview of your agency flag" width="256" height="160" style="width:100%;max-width:256px;border:1px solid var(--line);border-radius:3px"><div class="ag"><label class="agl">Agency name<input type="text" maxlength="24" data-ag="name" value="'+escHtml(agency.name)+'"></label>'+agencyColor('field','Field colour')+agencySelect('pattern','Pattern',AG_ENUM.pattern)+agencyColor('stripe','Pattern colour')+agencySelect('emblem','Emblem',AG_ENUM.emblem)+agencyColor('emblemColor','Emblem colour')+agencySelect('pos','Emblem position',AG_ENUM.pos)+agencySelect('size','Emblem size',AG_ENUM.size)+'</div><p class="note" id="agNote"></p></div><p class="fine">The flag appears on the rocket body, the launch tower and the mission debrief.</p>';agencyPreview();}
+function renderCodex(L){const total=designSpace(PARTS,MATS),tried=codex.tried.length,pct=Math.max(tried?1:0,Math.round(1000*tried/total)/10);const tag=(on,t)=>'<span class="'+(on?'pos':'')+'">'+(on?'✓ ':'· ')+t+'</span>';L.innerHTML='<div class="card"><div class="ct"><b>Combination codex</b><span class="cnt">'+tried+' / '+total.toLocaleString('en-US')+' designs</span></div><div style="height:5px;background:#0b111c;border-radius:2px"><i style="display:block;height:100%;width:'+pct+'%;background:var(--cyan)"></i></div><p class="note">Every different mix of parts, structure material and crew size counts as one design. A design is logged when you launch it.</p></div>'+'<div class="card"><div class="ct"><b>Structure materials tried</b><span class="cnt">'+codex.mats.length+' / '+Object.keys(MATS).length+'</span></div><div class="chips">'+Object.keys(MATS).map(k=>tag(codex.mats.includes(k),MATS[k].n)).join('')+'</div></div>'+'<div class="card"><div class="ct"><b>Parts flown</b><span class="cnt">'+PARTS.filter(p=>!p.fixed&&codex.parts.includes(p.id)).length+' / '+PARTS.filter(p=>!p.fixed).length+'</span></div><div class="chips">'+PARTS.filter(p=>!p.fixed).map(p=>tag(codex.parts.includes(p.id),p.name)).join('')+'</div></div>'+'<div class="card"><div class="ct"><b>Best efficiency on a clean orbit</b><span class="cnt">'+(codex.best||'none yet')+'</span></div></div>';}
+document.addEventListener('input',e=>{const k=e.target&&e.target.dataset&&e.target.dataset.ag;if(!k)return;agency=cleanAgency(Object.assign({},agency,{[k]:e.target.value}));saveAgency(agency);drawFlag(agency,flagCv);if(flagTex)flagTex.needsUpdate=true;agencyPreview();});
 
 /* ---------- log & HUD ---------- */
 function logEv(s,cls,t){const L=$('#log');const d=document.createElement('div');d.className=cls||'';d.textContent=(t!=null?'T+'+tfmt(t)+'  ':'')+s;L.appendChild(d);while(L.children.length>5)L.removeChild(L.firstChild);if(mode==='build')setTimeout(()=>{if(d.parentNode&&mode==='build')d.remove();},6000);}
@@ -501,7 +571,7 @@ function updHUD(){if(!fl)return;const stage=fl.boosters.some(b=>b.attached&&b.pr
 /* ---------- flight ---------- */
 function setLocked(l){document.querySelectorAll('#bay button,#bay input').forEach(b=>{if(b.id==='mute')return;b.disabled=l;});if(!l){renderAll();$('#reset').disabled=false;}}
 function launch(){
- if(mode!=='build')return;closeDeb();actx();
+ if(mode!=='build')return;closeDeb();actx();recordTry(build);
  fl=newFlight(build);prop0=fl.core.prop+fl.boosters.reduce((s,b)=>s+b.prop,0);samples=[];lastSample=-1;simAcc=0;paused=false;visAlt=0;exploded=false;
  rebuildRocket();debris.forEach(d=>scene&&scene.remove(d.g));debris.length=0;
  mode='countdown';cdT=3.2;setLocked(true);$('#launch').hidden=true;$('#log').innerHTML='';
@@ -562,8 +632,9 @@ function showDeb(){
  else{const imp=improve(build);fixes=imp.length?imp.map((a,i)=>'<div class="fix"><div><b>'+a.label+'</b><p>Efficiency '+eff+' → '+a.eff+'. Cost '+money(a.d.cost)+', build time '+a.d.days.toFixed(1)+' days.</p></div><button class="btn pri" data-apply="'+i+'">Apply</button></div>').join(''):'<p class="fine">No single swap beats this design. Strong build.</p>';window._imp=imp;}
  window._adv=allOk?window._imp:advise(build);
  lastRun={cost:d.cost,days:d.days,eff:eff};
+ if(allOk&&eff>codex.best){codex.best=eff;saveCodex();}
  const el=$('#deb');
- el.innerHTML='<div class="sheet"><div class="head '+cls+'"><small>'+sub+' · Mission debrief</small><h2 id="debT">'+head+'</h2></div>'
+ el.innerHTML='<div class="sheet"><div class="head '+cls+'"><small>'+escHtml(agency.name)+' · '+sub+' · Mission debrief</small><h2 id="debT">'+head+'</h2></div>'
   +'<div class="deltas"><span class="d">Efficiency index '+eff+'</span><span class="d">'+money(d.cost)+'</span><span class="d">'+d.days.toFixed(1)+' days to build</span><span class="d">'+Math.round(d.mass)+' kg</span>'+cmp+'</div>'
   +'<div class="grid2">'+gates+asc+'</div>'
   +(samples.length>2?'<div class="charts">'+chart('Altitude','km','alt')+chart('Velocity','m/s','v')+'</div>':'')
