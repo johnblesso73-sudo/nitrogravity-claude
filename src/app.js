@@ -26,7 +26,7 @@ function stopRumble(){if(rumble){try{rumble.s.stop();}catch(e){}rumble=null;}}
 
 /* ---------- 3D ---------- */
 const cv=$('#gl');
-let R=null,scene,camera,rocketRoot,rkGroup,rk=null,planet,atmo,stars,points,sunL;
+let R=null,scene,camera,rocketRoot,rkGroup,rk=null,planet,planetClouds,atmo,stars,points,sunL,visualClock=0;
 const cam={az:.7,pol:1.32,dist:17,tx:0,ty:3.2,tz:0,user:0,dragging:false};
 const tweens=[],debris=[];
 const NP=800,P={pos:new Float32Array(NP*3),col:new Float32Array(NP*3),vel:new Float32Array(NP*3),base:new Float32Array(NP*3),life:new Float32Array(NP),max:new Float32Array(NP),i:0};
@@ -86,6 +86,33 @@ function emit(x,y,z,vx,vy,vz,life,r,g,b){const i=P.i++%NP,k=i*3;P.pos[k]=x;P.pos
 function updParticles(dt){for(let i=0;i<NP;i++){const k=i*3;if(P.life[i]>0){P.life[i]-=dt;P.pos[k]+=P.vel[k]*dt;P.pos[k+1]+=P.vel[k+1]*dt;P.pos[k+2]+=P.vel[k+2]*dt;const f=Math.max(0,P.life[i]/P.max[i]);P.col[k]=P.base[k]*f;P.col[k+1]=P.base[k+1]*f;P.col[k+2]=P.base[k+2]*f;}else{P.col[k]=P.col[k+1]=P.col[k+2]=0;}}
  geoP.attributes.position.needsUpdate=true;geoP.attributes.color.needsUpdate=true;}
 function explode(x,y,z,n){for(let i=0;i<n;i++){const a=Math.random()*6.283,e=Math.random()*3.14-1.57,s=6+Math.random()*26;emit(x,y+2,z,Math.cos(a)*Math.cos(e)*s,Math.sin(e)*s*.9+6,Math.sin(a)*Math.cos(e)*s,.8+Math.random()*1.8,1,.45+Math.random()*.4,.12);}}
+function makeEarthTexture(){
+ const c=document.createElement('canvas');c.width=1024;c.height=512;const x=c.getContext('2d');
+ const sea=x.createLinearGradient(0,0,0,512);sea.addColorStop(0,'#144a78');sea.addColorStop(.48,'#257fb2');sea.addColorStop(1,'#0b355f');x.fillStyle=sea;x.fillRect(0,0,1024,512);
+ const land=[
+  [[.04,.22],[.09,.13],[.17,.12],[.23,.17],[.29,.23],[.27,.3],[.23,.34],[.21,.42],[.16,.45],[.13,.39],[.09,.36],[.07,.29]],
+  [[.24,.43],[.30,.46],[.34,.53],[.33,.62],[.31,.73],[.28,.84],[.25,.75],[.24,.63],[.22,.53]],
+  [[.29,.12],[.32,.08],[.36,.1],[.36,.16],[.33,.2],[.3,.18]],
+  [[.43,.23],[.48,.2],[.52,.22],[.54,.27],[.51,.32],[.47,.31],[.44,.28]],
+  [[.46,.32],[.52,.31],[.55,.37],[.54,.48],[.52,.57],[.5,.68],[.47,.73],[.44,.62],[.43,.52],[.45,.43]],
+  [[.51,.2],[.59,.15],[.68,.16],[.75,.2],[.84,.22],[.9,.29],[.86,.35],[.78,.36],[.74,.42],[.68,.4],[.64,.34],[.57,.33],[.53,.28]],
+  [[.78,.57],[.83,.56],[.86,.61],[.84,.68],[.8,.7],[.77,.65]],
+  [[.83,.72],[.9,.71],[.94,.77],[.92,.84],[.87,.85],[.83,.8]]
+ ];
+ x.fillStyle='#5f9b70';x.strokeStyle='#b5d8b0';x.lineWidth=2;
+ land.forEach(p=>{x.beginPath();p.forEach((q,i)=>i?x.lineTo(q[0]*1024,q[1]*512):x.moveTo(q[0]*1024,q[1]*512));x.closePath();x.fill();x.stroke();});
+ // Soft polar ice caps and scattered cloud bands give the globe depth at game scale.
+ x.fillStyle='rgba(220,244,255,.78)';x.fillRect(0,0,1024,18);x.fillRect(0,494,1024,18);
+ const tex=new THREE.CanvasTexture(c);tex.needsUpdate=true;return tex;
+}
+function makeCloudTexture(){
+ const c=document.createElement('canvas');c.width=1024;c.height=512;const x=c.getContext('2d');
+ for(let i=0;i<95;i++){
+  const px=(i*137.5)%1024,py=38+((i*83)%430),w=22+(i%6)*11,h=5+(i%4)*3;
+  x.fillStyle='rgba(245,250,255,'+(.12+(i%4)*.035)+')';x.beginPath();x.ellipse(px,py,w,h,(i%9-4)*.08,0,Math.PI*2);x.fill();
+ }
+ const tex=new THREE.CanvasTexture(c);tex.needsUpdate=true;return tex;
+}
 function init3D(){
  try{R=new THREE.WebGLRenderer({canvas:cv,antialias:true});}catch(e){R=null;$('#nogl').hidden=false;return;}
  R.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
@@ -99,8 +126,9 @@ function init3D(){
  const ring=new THREE.Mesh(new THREE.RingGeometry(3.4,3.8,64),new THREE.MeshBasicMaterial({color:0xff8a3d,side:THREE.DoubleSide}));ring.rotation.x=-Math.PI/2;ring.position.y=.07;scene.add(ring);
  const tm=new THREE.MeshStandardMaterial({color:0x4a5668,metalness:.6,roughness:.5});
  const tw=new THREE.Group();tw.add(mesh(new THREE.BoxGeometry(.7,13,.7),tm,0,6.5,0));[3,6,9,12].forEach(y=>tw.add(mesh(new THREE.BoxGeometry(2.6,.18,.18),tm,1.3,y,0)));tw.add(flagPlane(1.8,1.1,1.5,11.3,0));tw.position.set(-4.6,0,0);scene.add(tw);
- planet=new THREE.Mesh(new THREE.SphereGeometry(40000,96,64),new THREE.MeshStandardMaterial({color:0x0e1624,roughness:1}));planet.position.y=-40000;scene.add(planet);
- atmo=new THREE.Mesh(new THREE.SphereGeometry(40700,96,64),new THREE.MeshBasicMaterial({color:0x58d0f5,transparent:true,opacity:.14,side:THREE.BackSide,blending:THREE.AdditiveBlending,depthWrite:false}));atmo.position.y=-40000;atmo.visible=false;scene.add(atmo);
+ planet=new THREE.Mesh(new THREE.SphereGeometry(40000,96,64),new THREE.MeshPhongMaterial({map:makeEarthTexture(),shininess:12}));planet.position.y=-40000;scene.add(planet);
+ planetClouds=new THREE.Mesh(new THREE.SphereGeometry(40100,96,64),new THREE.MeshBasicMaterial({map:makeCloudTexture(),transparent:true,opacity:.7,depthWrite:false}));planetClouds.position.y=-40000;scene.add(planetClouds);
+ atmo=new THREE.Mesh(new THREE.SphereGeometry(40700,96,64),new THREE.MeshBasicMaterial({color:0x58d0f5,transparent:true,opacity:.18,side:THREE.BackSide,blending:THREE.AdditiveBlending,depthWrite:false}));atmo.position.y=-40000;atmo.visible=true;scene.add(atmo);
  const sp=new Float32Array(1800*3);for(let i=0;i<1800;i++){const u=Math.random()*2-1,a=Math.random()*6.283,s=Math.sqrt(1-u*u);sp[i*3]=Math.cos(a)*s*100000;sp[i*3+1]=Math.abs(u)*100000;sp[i*3+2]=Math.sin(a)*s*100000;}
  const sg=new THREE.BufferGeometry();sg.setAttribute('position',new THREE.BufferAttribute(sp,3));
  stars=new THREE.Points(sg,new THREE.PointsMaterial({size:1.8,sizeAttenuation:false,color:0xffffff,transparent:true,opacity:.3,depthWrite:false}));stars.frustumCulled=false;scene.add(stars);
@@ -120,10 +148,11 @@ function init3D(){
 }
 function resize(){if(!R)return;const s=$('#stage');const w=s.clientWidth||600,h=s.clientHeight||400;R.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}
 const vis=a=>9*Math.pow(Math.max(a,0),.6);
-function skyFor(alt){const t=clamp(alt/70000,0,1);const r=(22+(2-22)*t)/255,g=(35+(4-35)*t)/255,b=(59+(10-59)*t)/255;scene.background.setRGB(r,g,b);
+function skyFor(alt){const t=clamp(alt/70000,0,1);const r=(34+(2-34)*t)/255,g=(92+(4-92)*t)/255,b=(150+(10-150)*t)/255;scene.background.setRGB(r,g,b);
  stars.material.opacity=.3+.7*clamp((alt-6000)/40000,0,1);
- const a=clamp(alt/30000,0,1);planet.material.color.setRGB((14+(34-14)*a)/255,(22+(96-22)*a)/255,(36+(170-36)*a)/255);atmo.visible=alt>4000;}
+ planetClouds.visible=true;atmo.visible=true;atmo.material.opacity=.12+.07*(1-t);}
 function frame3D(dt){
+ visualClock+=dt;
  // tweens
  for(let i=tweens.length-1;i>=0;i--){const t=tweens[i];t.t+=dt;const u=clamp(t.t/t.d,0,1),k=1-Math.pow(1-u,3);t.o.position.y=t.from*(1-k);if(u>=1){t.o.position.y=0;tweens.splice(i,1);}}
  // debris
@@ -135,7 +164,15 @@ function frame3D(dt){
  if(mode==='flight'||mode==='ended'||mode==='countdown'){
   const a=fl?fl.y:0;visAlt+=(a-visAlt)*Math.min(1,dt*14);rky=vis(visAlt);
  }else rky=0;
- rocketRoot.position.set(rkx,rky,rkz);
+ const idleBob=mode==='build'&&!RM?Math.sin(visualClock*2.1)*.035:0;
+ rocketRoot.position.set(rkx,rky+idleBob,rkz);
+ let pitch=0,yaw=0,roll=0;
+ if(mode==='build'&&!RM){yaw=Math.sin(visualClock*.42)*.07;roll=Math.sin(visualClock*1.8)*.008;}
+ else if(mode==='countdown'){roll=Math.sin(visualClock*24)*.01;}
+ else if(mode==='flight'&&fl){const burn=fl.phase==='burn';pitch=burn?Math.sin(visualClock*2.2)*.012:0;roll=Math.sin(visualClock*(burn?4:18))*(burn?.014:.045);}
+ rocketRoot.rotation.set(pitch,yaw,roll);
+ if(planet)planet.rotation.y+=dt*.002;
+ if(planetClouds)planetClouds.rotation.y+=dt*.0028;
  // flames
  if(rk){
   const live=mode==='flight'&&fl&&(fl.phase==='burn'||fl.phase==='shake')&&!exploded;
