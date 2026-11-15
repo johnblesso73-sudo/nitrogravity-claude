@@ -17,12 +17,18 @@ function sim(b){const k=key(b);if(!cache.has(k))cache.set(k,runHeadless(b));retu
 function announce(m){$('#live').textContent=m;}
 
 /* ---------- audio ---------- */
-let AC=null,muted=false,rumble=null;
+let AC=null,muted=false,rumble=null,renderQuality=1,showClouds=true,showAtmosphere=true,shakeEnabled=true;
 function actx(){if(muted)return null;if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)();}catch(e){return null;}}if(AC.state==='suspended')AC.resume();return AC;}
 function blip(f,d,type,vol){const a=actx();if(!a)return;try{const o=a.createOscillator(),g=a.createGain();o.type=type||'square';o.frequency.value=f;g.gain.value=vol||.04;g.gain.exponentialRampToValueAtTime(.0001,a.currentTime+d);o.connect(g);g.connect(a.destination);o.start();o.stop(a.currentTime+d);}catch(e){}}
 function startRumble(){const a=actx();if(!a||rumble)return;try{const n=a.sampleRate*2,buf=a.createBuffer(1,n,a.sampleRate),d=buf.getChannelData(0);let l=0;for(let i=0;i<n;i++){l=(l+.02*(Math.random()*2-1))/1.02;d[i]=l*3.5;}const s=a.createBufferSource();s.buffer=buf;s.loop=true;const g=a.createGain();g.gain.value=0;const f=a.createBiquadFilter();f.type='lowpass';f.frequency.value=380;s.connect(f);f.connect(g);g.connect(a.destination);s.start();rumble={s,g};}catch(e){rumble=null;}}
 function setRumble(v){if(rumble){try{rumble.g.gain.value=v*.5;}catch(e){}}}
 function stopRumble(){if(rumble){try{rumble.s.stop();}catch(e){}rumble=null;}}
+function syncSoundControls(){const a=$('#mute'),b=$('#settingsMute');if(a){a.textContent=muted?'Sound off':'Sound on';a.setAttribute('aria-pressed',String(muted));}if(b)b.textContent=muted?'Sound off':'Sound on';}
+function toggleMute(){muted=!muted;if(muted)stopRumble();syncSoundControls();}
+const qualityNames=['Low','Balanced','High'];
+function setQuality(n){renderQuality=(n+qualityNames.length)%qualityNames.length;const l=$('#qualityLabel');if(l)l.textContent=qualityNames[renderQuality];if(R){R.setPixelRatio(Math.min(window.devicePixelRatio||1,[1,1.5,2][renderQuality]));resize();}}
+function setSettingsTab(name){const bay=$('#bay'),appRoot=$('#app');if(!bay)return;bay.dataset.settingsTab=name;appRoot.dataset.settingsTab=name;document.querySelectorAll('.menuTab').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.settingsTab===name)));}
+function setSettingToggle(name,on){const b=$('[data-setting-toggle="'+name+'"]');if(b){b.classList.toggle('on',on);b.setAttribute('aria-pressed',String(on));const mark=$('span',b);if(mark)mark.textContent=on?'✓':'×';}}
 
 /* ---------- 3D ---------- */
 const cv=$('#gl');
@@ -138,7 +144,7 @@ function makeCloudTexture(){
 }
 function init3D(){
  try{R=new THREE.WebGLRenderer({canvas:cv,antialias:true});}catch(e){R=null;$('#nogl').hidden=false;return;}
- R.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+ R.setPixelRatio(Math.min(window.devicePixelRatio||1,[1,1.5,2][renderQuality]));
  scene=new THREE.Scene();scene.background=new THREE.Color(0x16233b);
  camera=new THREE.PerspectiveCamera(42,1,.1,300000);
  scene.add(new THREE.HemisphereLight(0x9bbcff,0x1b1d2b,.65));
@@ -173,7 +179,7 @@ function resize(){if(!R)return;const s=$('#stage');const w=s.clientWidth||600,h=
 const vis=a=>9*Math.pow(Math.max(a,0),.6);
 function skyFor(alt){const t=clamp(alt/70000,0,1);const r=(34+(2-34)*t)/255,g=(92+(4-92)*t)/255,b=(150+(10-150)*t)/255;scene.background.setRGB(r,g,b);
  stars.material.opacity=.3+.7*clamp((alt-6000)/40000,0,1);
- planetClouds.visible=true;atmo.visible=true;atmo.material.opacity=.12+.07*(1-t);}
+ planetClouds.visible=showClouds;atmo.visible=showAtmosphere;atmo.material.opacity=.12+.07*(1-t);}
 function frame3D(dt){
  visualClock+=dt;
  // tweens
@@ -182,7 +188,7 @@ function frame3D(dt){
  for(let i=debris.length-1;i>=0;i--){const d=debris[i];d.t+=dt;d.vy-=9.8*dt*3;d.x+=d.vx*dt;d.y+=d.vy*dt;d.z+=d.vz*dt;d.g.position.set(d.x,d.y,d.z);d.g.rotation.z+=d.rz*dt;d.g.rotation.x+=d.rx*dt;if(d.t>7){scene.remove(d.g);debris.splice(i,1);}}
  // rocket pose
  let jx=0,jz=0;
- if(mode==='flight'&&fl&&fl.phase==='shake'&&!RM){const amp=.12+.5*clamp((1.2-fl.d.twr)/.3,0,1);jx=(Math.random()-.5)*amp;jz=(Math.random()-.5)*amp;shake=amp;}else shake=0;
+ if(mode==='flight'&&fl&&fl.phase==='shake'&&shakeEnabled&&!RM){const amp=.12+.5*clamp((1.2-fl.d.twr)/.3,0,1);jx=(Math.random()-.5)*amp;jz=(Math.random()-.5)*amp;shake=amp;}else shake=0;
  rkx=jx;rkz=jz;
  if(mode==='flight'||mode==='ended'||mode==='countdown'){
   const a=fl?fl.y:0;visAlt+=(a-visAlt)*Math.min(1,dt*14);rky=vis(visAlt);
@@ -217,7 +223,7 @@ function frame3D(dt){
  else if(mode==='ended'){tx=rkx;ty=rky+3.2;tz=rkz;if(fl&&fl.outcome==='ORBIT'||fl&&fl.outcome==='POWER'){if(cam.user<=0){cam.az+=dt*.12;dist=Math.min(cam.dist+dt*4,60);cam.dist=dist;}}}
  if(mode==='build'&&cam.user<=0&&!RM){cam.az+=dt*.14;}
  if(cam.user>0)cam.user-=dt;
- const sx=shake&&!RM?(Math.random()-.5)*shake:0,sy=shake&&!RM?(Math.random()-.5)*shake:0;
+ const sx=shake&&shakeEnabled&&!RM?(Math.random()-.5)*shake:0,sy=shake&&shakeEnabled&&!RM?(Math.random()-.5)*shake:0;
  camera.position.set(tx+dist*Math.sin(cam.pol)*Math.sin(cam.az)+sx,ty+dist*Math.cos(cam.pol)+sy,tz+dist*Math.sin(cam.pol)*Math.cos(cam.az));
  camera.lookAt(tx,ty,tz);
  stars.position.set(camera.position.x,camera.position.y,camera.position.z);
@@ -369,6 +375,11 @@ function backToBuild(){closeDeb();mode='build';fl=null;exploded=false;visAlt=0;r
 /* ---------- events ---------- */
 document.addEventListener('click',e=>{
  const t=e.target.closest('button,[data-tab]');if(!t)return;
+ if(t.dataset.settingsTab){setSettingsTab(t.dataset.settingsTab);return;}
+ if(t.dataset.qualityStep){setQuality(renderQuality+(+t.dataset.qualityStep));return;}
+ if(t.dataset.settingToggle){const k=t.dataset.settingToggle,on=t.getAttribute('aria-pressed')!=='true';if(k==='clouds'){showClouds=on;if(planetClouds)planetClouds.visible=on;}if(k==='atmosphere'){showAtmosphere=on;if(atmo)atmo.visible=on;}if(k==='shake')shakeEnabled=on;setSettingToggle(k,on);return;}
+ if(t.id==='settingsMute'){toggleMute();return;}
+ if(t.id==='fullscreenButton'){if(document.fullscreenElement){document.exitFullscreen().catch(()=>{});}else if(document.documentElement.requestFullscreen){document.documentElement.requestFullscreen().catch(()=>announce('Fullscreen is unavailable in this browser.'));}return;}
  if(t.dataset.tab){tab=t.dataset.tab;renderTabs();renderCatalog();return;}
  if(t.dataset.add)return addPart(t.dataset.add);
  if(t.dataset.rm)return rmPart(t.dataset.rm);
@@ -384,7 +395,7 @@ document.addEventListener('click',e=>{
  if(t.id==='undo'&&hist.length&&mode==='build'){redo.push(clone(build));build=hist.pop();onChange(null,'Undo');return;}
  if(t.id==='redo'&&redo.length&&mode==='build'){hist.push(clone(build));build=redo.pop();onChange(null,'Redo');return;}
  if(t.id==='reset'&&mode==='build'){setBuild(clone(START),null,'Reset to starter build');return;}
- if(t.id==='mute'){muted=!muted;t.textContent=muted?'Sound off':'Sound on';t.setAttribute('aria-pressed',String(muted));if(muted)stopRumble();return;}
+ if(t.id==='mute'){toggleMute();return;}
 });
 document.addEventListener('change',e=>{if(e.target.id==='crew')crewPending=false;});
 document.addEventListener('input',e=>{if(e.target.id==='crew'){setCrew(+e.target.value);const d=evalBuild(build);const c=$('#crew');if(c){const ch=c.parentNode.querySelector('.chips');if(ch)ch.innerHTML='<span>'+d.days.toFixed(1)+' days</span><span>'+money(Math.max(0,(build.crew-4)*30000))+' extra</span><span>'+Math.round(d.hours)+' work hours</span>';const ct=c.parentNode.querySelector('.cnt');if(ct)ct.textContent=build.crew+' people';}}});
