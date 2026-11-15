@@ -4,8 +4,8 @@
 <style>
 /* Layout: mission-control split screen. Engineering bay left (parts, gauges), live 3D launchpad right; stacked on phones. */
 :root{
- --bg:#0a0e16; --surface:#111826; --surface2:#172133; --line:#243249; --text:#e7edf7; --muted:#93a3bc;
- --thrust:#ff8a3d; --thrust2:#ffc46b; --cyan:#58d0f5; --ok:#5ee6a8; --warn:#ffcf5a; --bad:#ff6275;
+ --bg:#06110C; --surface:#171717; --surface2:#202521; --line:#354039; --text:#edf1ee; --muted:#a2ada5;
+ --thrust:#A31C1B; --thrust2:#bd3a36; --cyan:#8eaa94; --ok:#8fb79a; --warn:#d1ad69; --bad:#A31C1B;
  --display:'Chakra Petch','Arial Narrow',system-ui,sans-serif; --body:'IBM Plex Sans',system-ui,sans-serif; --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
  color-scheme:dark;
 }
@@ -122,6 +122,71 @@ input[type=range]{width:100%;accent-color:var(--thrust)}
 .card[draggable=true]:active{cursor:grabbing}
 #stage.drop-ready{outline:2px dashed var(--cyan);outline-offset:-10px}
 #stage.drop-ready:after{content:"Drop part to attach · material to select";position:absolute;left:50%;top:18%;transform:translateX(-50%);z-index:5;pointer-events:none;padding:10px 14px;background:rgba(8,18,32,.9);border:1px solid var(--cyan);border-radius:4px;color:var(--text);font:600 11px var(--display);letter-spacing:.1em;text-transform:uppercase;box-shadow:0 6px 24px #0008}
+/* Clean forest and charcoal interface */
+:focus-visible{outline-color:#8eaa94}
+#bay{background:#171717;border-right-color:#303a33;padding-block:20px 28px;gap:14px}
+#stage{background:#06110C}
+.brand h1{font-size:24px;letter-spacing:.1em}
+.brand h1 span{color:#A31C1B}
+.brand p{color:#a2ada5}
+.sec{gap:9px}
+.sec>h2{letter-spacing:.12em;color:#a2ada5}
+.gauges{gap:6px}
+.g{background:#202521;border-color:#354039;border-radius:3px;padding:9px}
+.g .bar{background:#06110C}
+.g .bar i{background:#8fb79a}
+.g.bad .bar i{background:#A31C1B}
+.g.neutral .bar i{background:#8eaa94}
+.chip{background:rgba(143,183,154,.14);color:#a7c9ad}
+.g.bad .chip{background:rgba(163,28,27,.18);color:#f09991}
+.g.neutral .chip{background:rgba(142,170,148,.16);color:#b3c8b7}
+.g.bad{border-color:rgba(163,28,27,.6)}
+.tabs{gap:4px}
+.tabs button{padding:10px 9px}
+.tabs button[aria-selected=true]{color:#f3f5f3;border-bottom-color:#A31C1B}
+.list{gap:7px}
+.card{background:#202521;border-color:#354039;border-radius:3px;padding:10px;gap:7px}
+.card.sel{border-color:#A31C1B}
+.card .ct b{font-size:14px}
+.chips{gap:4px}
+.chips span{background:#171717;border-color:#354039;border-radius:2px}
+.chips span.pos{color:#a7c9ad}
+.chips span.neg{color:#d1ad69}
+.card .note,.fine{color:#a2ada5}
+.btn{background:#171717;border-color:#3a463e;border-radius:3px;transition:background-color .15s,border-color .15s,color .15s}
+.btn:hover:not(:disabled){border-color:#8eaa94}
+.btn.pri{background:#A31C1B;border-color:#A31C1B;color:#fff}
+.btn.pri:hover:not(:disabled){background:#bd3a36;border-color:#bd3a36}
+input[type=range]{accent-color:#A31C1B}
+.pill,#tele{background:rgba(23,23,23,.9);border-color:#465148}
+#hudTR{color:#d2dbd4}
+#log div{background:rgba(23,23,23,.92);border-left-color:#8eaa94}
+#log div.warn{border-color:#d1ad69}
+#log div.bad{border-color:#A31C1B}
+#log div.ok{border-color:#8fb79a}
+#count{color:#fff;text-shadow:0 0 32px rgba(163,28,27,.65)}
+#deb{background:rgba(6,17,12,.92)}
+#deb .sheet{background:#171717;border-color:#354039;border-radius:4px}
+.head{border-color:#8eaa94}
+.head.ok{border-color:#8fb79a}
+.head.bad{border-color:#A31C1B}
+.head.warn{border-color:#d1ad69}
+.gc,.charts svg,.fix{background:#202521;border-color:#354039;border-radius:3px}
+.gc.fail{border-color:rgba(163,28,27,.65)}
+.gc .t em{color:#a7c9ad}
+.gc.fail .t em{color:#f09991}
+.charts .ln{stroke:#8eaa94}
+.charts .ax{stroke:#354039}
+.charts .ev,.charts circle{stroke:#A31C1B;fill:#A31C1B}
+.d{background:#171717;border-color:#354039}
+.d.up{color:#a7c9ad}
+.d.dn{color:#d1ad69}
+#stage.drop-ready{outline-color:#8eaa94}
+#stage.drop-ready:after{background:rgba(23,23,23,.96);border-color:#8eaa94;box-shadow:none}
+@media (max-width:900px){
+ #bay{background:#171717;gap:12px}
+ #stage{box-shadow:0 1px 0 #354039}
+}
 </style>
 <div id="app">
  <section id="stage" aria-label="3D launchpad viewport">
