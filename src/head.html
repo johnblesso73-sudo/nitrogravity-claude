@@ -113,6 +113,10 @@ input[type=range]{width:100%;accent-color:var(--thrust)}
  #launch{min-width:0;flex:1}
 }
 @media (prefers-reduced-motion:reduce){.g .bar i{transition:none}}
+.ag{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.agl{display:flex;flex-direction:column;gap:4px;font:600 10px/1 var(--display);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.agl input[type=text],.agl select{background:#0d1522;border:1px solid var(--line);border-radius:3px;color:var(--text);padding:8px;font:500 13px var(--body);min-height:40px;text-transform:none;letter-spacing:0}
+.agl input[type=color]{width:100%;height:40px;padding:2px;background:#0d1522;border:1px solid var(--line);border-radius:3px}
 </style>
 <div id="app">
  <section id="stage" aria-label="3D launchpad viewport">
