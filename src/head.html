@@ -187,6 +187,60 @@ input[type=range]{accent-color:#A31C1B}
  #bay{background:#171717;gap:12px}
  #stage{box-shadow:0 1px 0 #354039}
 }
+/* Framed game menu inspired by the reference settings screen */
+#app{height:100%;display:block;position:relative}
+#stage{position:fixed;inset:0;height:100vh;z-index:0;grid-area:auto}
+#bay{position:relative;z-index:6;margin:3vh auto;height:94vh;width:min(94vw,1380px);padding:0 clamp(18px,6vw,88px) 26px;border:1px solid rgba(237,241,238,.62);background:rgba(6,17,12,.68);backdrop-filter:blur(2px);border-radius:0;box-shadow:none;gap:16px}
+#settingsHeader{position:sticky;top:0;z-index:8;height:72px;min-height:72px;margin:0 calc(clamp(18px,6vw,88px)*-1);padding:12px clamp(18px,6vw,88px);display:flex;align-items:center;gap:clamp(18px,4vw,52px);background:linear-gradient(180deg,rgba(6,17,12,.96),rgba(6,17,12,.78));border-bottom:1px solid rgba(237,241,238,.62)}
+.backButton{width:48px;height:48px;flex:0 0 48px;border:1px solid rgba(237,241,238,.8);border-radius:50%;background:#171717;color:#fff;font:400 38px/1 var(--display);display:grid;place-items:center;padding:0}
+.backButton:hover{background:#A31C1B;border-color:#A31C1B}
+.menuTabs{display:grid;grid-template-columns:repeat(3,minmax(140px,1fr));gap:clamp(8px,2.5vw,34px);width:min(760px,100%);margin:auto}
+.menuTab{height:48px;border:1px solid rgba(237,241,238,.78);clip-path:polygon(9% 0,91% 0,100% 50%,91% 100%,9% 100%,0 50%);background:#171717;color:#f3f5f3;padding:0 22px;font:600 14px var(--display);letter-spacing:.14em;text-transform:uppercase}
+.menuTab[aria-selected=true]{background:#A31C1B;border-color:#A31C1B}
+.menuTab:hover{background:#292929}
+.menuTab[aria-selected=true]:hover{background:#bd3a36}
+.settingsPage{max-width:1040px;margin:clamp(22px,5vh,54px) auto 24px;width:100%;gap:0}
+.settingsPage>h2{font:600 13px var(--display);letter-spacing:.18em;text-transform:uppercase;color:#dfe6e0;padding-bottom:18px;border-bottom:1px solid rgba(237,241,238,.7)}
+.settingRow{display:grid;grid-template-columns:minmax(0,1fr) minmax(190px,30%);align-items:center;gap:24px;min-height:78px;padding:14px 0;border-bottom:1px solid rgba(237,241,238,.58)}
+.settingRow>div:first-child{display:flex;flex-direction:column;gap:5px}
+.settingRow b{font:500 16px var(--display);letter-spacing:.04em;color:#f3f5f3}
+.settingRow small{font:12px var(--body);color:#c1cbc3}
+.settingControl,.stepControl{min-height:44px;border:1px solid rgba(237,241,238,.85);background:rgba(23,23,23,.74);color:#fff;font:600 13px var(--display);letter-spacing:.08em;text-transform:uppercase}
+.settingControl{min-width:190px;padding:10px 22px}
+.settingControl:hover,.stepControl button:hover{background:#A31C1B;border-color:#A31C1B}
+.stepControl{display:grid;grid-template-columns:48px 1fr 48px;align-items:center;text-align:center}
+.stepControl button{height:42px;border:0;background:transparent;color:#fff;font:400 28px var(--display)}
+.stepControl strong{font:600 14px var(--display);letter-spacing:.06em}
+.hexToggle{justify-self:center;width:86px;height:46px;border:2px solid #fff;clip-path:polygon(17% 0,83% 0,100% 50%,83% 100%,17% 100%,0 50%);background:rgba(23,23,23,.76);color:#fff;font:600 17px var(--display)}
+.hexToggle.on{background:#f3f5f3;color:#06110C}
+.hexToggle span{display:block}
+#bay[data-settings-tab="graphics"] .brand,#bay[data-settings-tab="audio"] .brand{display:none}
+#bay[data-settings-tab="graphics"]>.sec:not(#settingsGraphics),#bay[data-settings-tab="audio"]>.sec:not(#settingsAudio){display:none}
+#bay[data-settings-tab="game"] #settingsGraphics,#bay[data-settings-tab="game"] #settingsAudio{display:none}
+#bay[data-settings-tab="graphics"] #settingsGraphics,#bay[data-settings-tab="audio"] #settingsAudio{display:flex}
+#bay[data-settings-tab="graphics"] #bar,#bay[data-settings-tab="audio"] #bar{display:none}
+#bay[data-settings-tab="game"] #bar{position:sticky;bottom:0;z-index:9;margin:4px 0 0;padding:12px 0;background:linear-gradient(180deg,rgba(6,17,12,.1),rgba(6,17,12,.96));pointer-events:auto;justify-content:center}
+#bay[data-settings-tab="game"] #bar .btn{pointer-events:auto}
+#bay[data-settings-tab="game"] .sec[aria-label="Parts catalog"]{border-top:1px solid rgba(237,241,238,.42);padding-top:16px}
+#bay[data-settings-tab="game"] .card{background:rgba(23,23,23,.48);border:0;border-top:1px solid rgba(237,241,238,.42);border-radius:0;padding:14px 2px}
+#bay[data-settings-tab="game"] .card.sel{border-top-color:#A31C1B}
+#bay[data-settings-tab="game"] .g{background:rgba(23,23,23,.6)}
+@media(max-width:900px){
+ #app{height:100dvh;overflow:hidden}
+ #stage{height:100dvh}
+ #bay{margin:12px auto;height:calc(100dvh - 24px);width:calc(100vw - 24px);padding:0 16px 22px;gap:14px}
+ #settingsHeader{height:64px;min-height:64px;margin:0 -16px;padding:8px 12px;gap:10px}
+ .backButton{width:42px;height:42px;flex-basis:42px;font-size:32px}
+ .menuTabs{grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+ .menuTab{height:42px;padding:0 8px;font-size:10px;letter-spacing:.08em}
+ .settingRow{grid-template-columns:minmax(0,1fr) minmax(110px,34%);gap:10px;min-height:72px}
+ .settingRow b{font-size:14px}
+ .settingRow small{font-size:11px}
+ .settingControl{min-width:0;padding:8px 10px}
+ .stepControl{grid-template-columns:32px 1fr 32px}
+ .hexToggle{width:68px;height:40px}
+ .settingsPage{margin-top:20px}
+}
 </style>
 <div id="app">
  <section id="stage" aria-label="3D launchpad viewport">
@@ -198,10 +252,21 @@ input[type=range]{accent-color:#A31C1B}
   <div class="ov" id="hudTR"><span id="hint">Drag parts or materials onto rocket · Drag to orbit · Scroll to zoom</span><div id="speedRow" style="pointer-events:auto;margin-top:8px;display:flex;gap:6px;justify-content:flex-end" hidden></div></div>
   <div class="ov" id="log" aria-hidden="true"></div>
   <div class="ov" id="count" hidden></div>
-  <div class="ov" id="bar"><button class="btn pri" id="launch">Launch</button></div>
+  
   <div class="ov" id="nogl" hidden><p>3D view needs WebGL, which is not available here.<br>The builder, gauges and simulation still work.</p></div>
  </section>
- <aside id="bay" aria-label="Engineering bay">
+ <aside id="bay" aria-label="Engineering bay" data-settings-tab="game">
+  <header id="settingsHeader"><button class="backButton" type="button" data-settings-tab="game" aria-label="Back to game">‹</button><nav class="menuTabs" role="tablist" aria-label="Game settings"><button type="button" class="menuTab" data-settings-tab="game" aria-selected="true">Game</button><button type="button" class="menuTab" data-settings-tab="graphics" aria-selected="false">Graphics</button><button type="button" class="menuTab" data-settings-tab="audio" aria-selected="false">Audio</button></nav></header>
+  <section class="sec settingsPage" id="settingsGraphics" hidden><h2>Soft Graphics</h2>
+   <div class="settingRow"><div><b>Display mode</b><small>Expand the game to fill the screen</small></div><button type="button" class="settingControl" id="fullscreenButton">Fullscreen</button></div>
+   <div class="settingRow"><div><b>Quality level</b><small>Adjust rendering detail for your device</small></div><div class="stepControl"><button type="button" data-quality-step="-1" aria-label="Lower quality">‹</button><strong id="qualityLabel">Balanced</strong><button type="button" data-quality-step="1" aria-label="Raise quality">›</button></div></div>
+   <div class="settingRow"><div><b>Earth clouds</b><small>Show moving cloud cover on Earth</small></div><button type="button" class="hexToggle on" data-setting-toggle="clouds" aria-pressed="true" aria-label="Toggle Earth clouds"><span>✓</span></button></div>
+   <div class="settingRow"><div><b>Atmosphere glow</b><small>Show the blue edge around Earth</small></div><button type="button" class="hexToggle on" data-setting-toggle="atmosphere" aria-pressed="true" aria-label="Toggle atmosphere glow"><span>✓</span></button></div>
+   <div class="settingRow"><div><b>Screen shake effect</b><small>Reduce motion during rough flight</small></div><button type="button" class="hexToggle on" data-setting-toggle="shake" aria-pressed="true" aria-label="Toggle screen shake"><span>✓</span></button></div>
+  </section>
+  <section class="sec settingsPage" id="settingsAudio" hidden><h2>Audio</h2>
+   <div class="settingRow"><div><b>Sound effects</b><small>Rocket and interface sounds</small></div><button type="button" class="settingControl" id="settingsMute">Sound On</button></div>
+  </section>
   <div class="brand"><h1>Nitro<span> Gravity</span></h1><p>Space mission design game · NASA Space Apps Challenge · Chennai</p></div>
   <section class="sec" aria-labelledby="hg"><h2 id="hg">Pre-flight gauges <button class="btn" id="mute" style="min-height:28px;padding:5px 8px" aria-pressed="false">Sound on</button></h2><div class="gauges" id="gauges"></div></section>
   <section class="sec" aria-label="Parts catalog">
@@ -212,6 +277,7 @@ input[type=range]{accent-color:#A31C1B}
    <div class="row" id="examples"></div>
    <div class="row"><button class="btn" id="undo">Undo</button><button class="btn" id="redo">Redo</button><button class="btn" id="reset">Reset</button></div>
   </section>
+  <div class="ov" id="bar"><button class="btn pri" id="launch">Launch</button></div>
   <p class="fine">Ascent physics is simplified for learning: a vertical climb with real thrust, mass flow, gravity and drag. Altitude 100 km counts as orbit. Not affiliated with NASA. Team Nitro Gravity, Chennai, India.</p>
  </aside>
 </div>
