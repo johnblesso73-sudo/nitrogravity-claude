@@ -117,6 +117,11 @@ input[type=range]{width:100%;accent-color:var(--thrust)}
 .agl{display:flex;flex-direction:column;gap:4px;font:600 10px/1 var(--display);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 .agl input[type=text],.agl select{background:#0d1522;border:1px solid var(--line);border-radius:3px;color:var(--text);padding:8px;font:500 13px var(--body);min-height:40px;text-transform:none;letter-spacing:0}
 .agl input[type=color]{width:100%;height:40px;padding:2px;background:#0d1522;border:1px solid var(--line);border-radius:3px}
+
+.card[draggable=true]{cursor:grab}
+.card[draggable=true]:active{cursor:grabbing}
+#stage.drop-ready{outline:2px dashed var(--cyan);outline-offset:-10px}
+#stage.drop-ready:after{content:"Drop part to attach · material to select";position:absolute;left:50%;top:18%;transform:translateX(-50%);z-index:5;pointer-events:none;padding:10px 14px;background:rgba(8,18,32,.9);border:1px solid var(--cyan);border-radius:4px;color:var(--text);font:600 11px var(--display);letter-spacing:.1em;text-transform:uppercase;box-shadow:0 6px 24px #0008}
 </style>
 <div id="app">
  <section id="stage" aria-label="3D launchpad viewport">
@@ -125,7 +130,7 @@ input[type=range]{width:100%;accent-color:var(--thrust)}
    <div class="pill"><b>Status</b><span id="status">Build</span></div>
    <div id="tele" hidden></div>
   </div>
-  <div class="ov" id="hudTR"><span id="hint">Drag to orbit · Scroll to zoom · L to launch</span><div id="speedRow" style="pointer-events:auto;margin-top:8px;display:flex;gap:6px;justify-content:flex-end" hidden></div></div>
+  <div class="ov" id="hudTR"><span id="hint">Drag parts or materials onto rocket · Drag to orbit · Scroll to zoom</span><div id="speedRow" style="pointer-events:auto;margin-top:8px;display:flex;gap:6px;justify-content:flex-end" hidden></div></div>
   <div class="ov" id="log" aria-hidden="true"></div>
   <div class="ov" id="count" hidden></div>
   <div class="ov" id="bar"><button class="btn pri" id="launch">Launch</button></div>
@@ -366,6 +371,29 @@ function stopRumble(){if(rumble){try{rumble.s.stop();}catch(e){}rumble=null;}}
 
 /* ---------- 3D ---------- */
 const cv=$('#gl');
+const stage=$('#stage');
+document.addEventListener('dragstart',e=>{
+ const p=e.target.closest('[data-drag-part]'),m=e.target.closest('[data-drag-mat]');
+ if(!p&&!m)return;
+ e.dataTransfer.effectAllowed='copy';
+ e.dataTransfer.setData('text/plain',(p?'part:':'material:')+(p?p.dataset.dragPart:m.dataset.dragMat));
+ stage.classList.add('drop-ready');
+});
+document.addEventListener('dragend',()=>stage.classList.remove('drop-ready'));
+stage.addEventListener('dragover',e=>{if(e.dataTransfer.types.includes('text/plain')){e.preventDefault();e.dataTransfer.dropEffect='copy';stage.classList.add('drop-ready');}});
+stage.addEventListener('dragleave',e=>{if(!stage.contains(e.relatedTarget))stage.classList.remove('drop-ready');});
+stage.addEventListener('drop',e=>{
+ e.preventDefault();stage.classList.remove('drop-ready');
+ if(mode!=='build'){announce('Return to the build screen before changing the rocket.');return;}
+ const raw=e.dataTransfer.getData('text/plain'),cut=raw.indexOf(':');
+ if(cut<0)return;
+ const kind=raw.slice(0,cut),id=raw.slice(cut+1);
+ if(kind==='part'){
+  if(canAdd(build,id))addPart(id);
+  else announce('That part cannot be added to this build.');
+ }else if(kind==='material'&&MATS[id])setMat(id);
+});
+
 let R=null,scene,camera,rocketRoot,rkGroup,rk=null,planet,planetClouds,atmo,stars,points,sunL,visualClock=0;
 const cam={az:.7,pol:1.32,dist:17,tx:0,ty:3.2,tz:0,user:0,dragging:false};
 const tweens=[],debris=[];
@@ -576,12 +604,12 @@ function renderCatalog(){
  const L=$('#catalog');L.setAttribute('aria-labelledby','tab-'+tab);
  if(tab==='agency'){renderAgency(L);return;}
  if(tab==='codex'){renderCodex(L);return;}
- if(tab==='structure'){L.innerHTML=Object.keys(MATS).map(k=>{const m=MATS[k];const sel=k===build.mat;return '<div class="card'+(sel?' sel':'')+'"><div class="ct"><b>'+m.n+'</b><span class="cnt">'+(sel?'✓ selected':'')+'</span></div><div class="chips"><span>mass ×'+m.m+'</span><span>cost ×'+m.c+'</span><span>time ×'+m.t+'</span><span>limit '+(3*m.s).toFixed(1)+' g</span><span>heat ×'+m.h+'</span></div><p class="note">'+m.note+'</p><div class="act"><button class="btn" data-mat="'+k+'" '+(sel?'disabled':'')+'>'+(sel?'In use':'Use this')+'</button></div></div>';}).join('')+'<p class="fine">Material changes the dry mass, cost and build time of the capsule, core stage and boosters. Strength sets how many g the structure survives at max-Q.</p>';return;}
+ if(tab==='structure'){L.innerHTML=Object.keys(MATS).map(k=>{const m=MATS[k];const sel=k===build.mat;return '<div class="card'+(sel?' sel':'')+'" draggable="true" data-drag-mat="'+k+'" title="Drag material onto the 3D rocket to select it"><div class="ct"><b>'+m.n+'</b><span class="cnt">'+(sel?'✓ selected':'')+'</span></div><div class="chips"><span>mass ×'+m.m+'</span><span>cost ×'+m.c+'</span><span>time ×'+m.t+'</span><span>limit '+(3*m.s).toFixed(1)+' g</span><span>heat ×'+m.h+'</span></div><p class="note">'+m.note+'</p><div class="act"><button class="btn" data-mat="'+k+'" '+(sel?'disabled':'')+'>'+(sel?'In use':'Use this')+'</button></div></div>';}).join('')+'<p class="fine">Material changes the dry mass, cost and build time of the capsule, core stage and boosters. Strength sets how many g the structure survives at max-Q.</p>';return;}
  if(tab==='crew'){const d=evalBuild(build);L.innerHTML='<div class="card"><div class="ct"><b>Assembly crew</b><span class="cnt">'+build.crew+' people</span></div><label for="crew" class="note">More crew builds faster. Each person above 4 costs $30k.</label><input id="crew" type="range" min="4" max="10" step="1" value="'+build.crew+'"><div class="chips"><span>'+d.days.toFixed(1)+' days</span><span>'+money(Math.max(0,(build.crew-4)*30000))+' extra</span><span>'+Math.round(d.hours)+' work hours</span></div><p class="note">Repeating a part type gets 8% faster each time. Mixing many part types adds 4% integration time each.</p></div>';return;}
  const cats=tab==='propulsion'?['core','propulsion']:[tab];
  L.innerHTML=PARTS.filter(p=>cats.includes(p.cat)).map(p=>{const n=count(build,p.id);const can=canAdd(build,p.id);
   const why=p.booster&&boosterTotal(build)>=2?'Two booster slots are full':(n>=p.max?'Slot full':'');
-  return '<div class="card"><div class="ct"><b>'+p.name+'</b><span class="cnt">'+(p.fixed?'included':n+' / '+p.max)+'</span></div><div class="chips">'+chips(p)+'</div><div class="act">'+(p.fixed?'<button class="btn" disabled>Required</button>':'<button class="btn" data-rm="'+p.id+'" '+(n?'':'disabled')+' aria-label="Remove one '+p.name+'">−</button><button class="btn pri" data-add="'+p.id+'" '+(can?'':'disabled')+' title="'+why+'" aria-label="Add '+p.name+'">+ Add</button>')+'</div></div>';}).join('');
+  return '<div class="card" '+(p.fixed?'':'draggable="true" data-drag-part="'+p.id+'" title="Drag onto the 3D rocket to attach"')+'><div class="ct"><b>'+p.name+'</b><span class="cnt">'+(p.fixed?'included':n+' / '+p.max)+'</span></div><div class="chips">'+chips(p)+'</div><div class="act">'+(p.fixed?'<button class="btn" disabled>Required</button>':'<button class="btn" data-rm="'+p.id+'" '+(n?'':'disabled')+' aria-label="Remove one '+p.name+'">−</button><button class="btn pri" data-add="'+p.id+'" '+(can?'':'disabled')+' title="'+why+'" aria-label="Add '+p.name+'">+ Add</button>')+'</div></div>';}).join('');
 }
 function renderExamples(){$('#examples').innerHTML=Object.keys(EXAMPLES).map(k=>'<button class="btn" data-ex="'+k+'">'+EXAMPLES[k].name+'</button>').join('');$('#undo').disabled=!hist.length||mode!=='build';$('#redo').disabled=!redo.length||mode!=='build';}
 function renderAll(){renderGauges();renderTabs();renderCatalog();renderExamples();}
@@ -681,7 +709,7 @@ function showDeb(){
 }
 function closeDeb(){clearTimeout(debTimer);$('#deb').hidden=true;}
 function backToBuild(){closeDeb();mode='build';fl=null;exploded=false;visAlt=0;rky=0;if(R){debris.forEach(d=>scene.remove(d.g));debris.length=0;P.life.fill(0);rebuildRocket();rkGroup.visible=true;}
- $('#log').innerHTML='';$('#tele').hidden=true;$('#speedRow').hidden=true;$('#count').hidden=true;$('#launch').hidden=false;$('#hint').textContent='Drag to orbit · Scroll to zoom · L to launch';setStatus('Build');cam.dist=17;cam.pol=1.32;cam.user=0;stopRumble();setLocked(false);}
+ $('#log').innerHTML='';$('#tele').hidden=true;$('#speedRow').hidden=true;$('#count').hidden=true;$('#launch').hidden=false;$('#hint').textContent='Drag parts or materials onto rocket · Drag to orbit · Scroll to zoom';setStatus('Build');cam.dist=17;cam.pol=1.32;cam.user=0;stopRumble();setLocked(false);}
 
 /* ---------- events ---------- */
 document.addEventListener('click',e=>{
